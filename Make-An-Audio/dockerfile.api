@@ -1,0 +1,45 @@
+# base image
+FROM pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+# FROM python:3.10-slim
+
+# set working directory
+WORKDIR /app
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+RUN sed -i 's|http://archive.ubuntu.com|https://archive.ubuntu.com|g' /etc/apt/sources.list && \
+    apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    python3-dev \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+    
+
+# install python dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+RUN pip install --upgrade torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu118
+RUN pip install --upgrade typing_extensions
+
+
+COPY configs ./configs
+COPY ldm ./ldm
+COPY vocoder ./vocoder
+COPY gen_wav.py ./
+COPY api.py ./
+COPY useful_ckpts ./useful_ckpts
+
+
+ENV PYTHONPATH=/app
+ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+ENV AWS_REGION=ap-south-1
+ENV S3_BUCKET=tonexlabs
+ENV S3_PREFIX=make-an-audio-outputs
+ENV API_KEY=12345
+
+EXPOSE 8000
+
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
