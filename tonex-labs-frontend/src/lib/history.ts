@@ -1,0 +1,85 @@
+import type { ServiceType } from "~/types/services";
+import { auth } from "~/server/auth";
+import { db } from "~/server/db";
+import { getPresignedUrl } from "./s3";
+
+export type HistoryItem = {
+  id: string;
+  title: string;
+  voice: string | null;
+  audioUrl: string | null;
+  time: string;
+  date: string;
+  service: ServiceType;
+};
+
+export async function getHistoryItems(
+  service: ServiceType,
+): Promise<HistoryItem[]> {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return [];
+  }
+
+  try {
+    const audioClips = await db.generatedAudioClip.findMany({
+      where: {
+        userId: session.user.id,
+        s3Key: { not: null },
+        service: service,
+      },
+      take: 10,
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        text: true,
+        voice: true,
+        s3Key: true,
+        createdAt: true,
+        service: true,
+      },
+    });
+
+    const historyItems: HistoryItem[] = await Promise.all(
+      audioClips.map(async (clip) => {
+        let title = "Generated clip";
+        if (clip.service === "seedvc") {
+          title = "Voice conversion to " + (clip.voice ?? "");
+        } else if (clip.text !== null) {
+          title =
+            clip.text.length > 50
+              ? `${clip.text.substring(0, 50)}...`
+              : clip.text;
+        }
+
+        const audioUrl = clip.s3Key
+          ? await getPresignedUrl({ key: clip.s3Key })
+          : null;
+
+        const createdAt = new Date(clip.createdAt);
+        const time = createdAt.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const date = createdAt.toLocaleDateString();
+        return {
+          id: clip.id,
+          title: title,
+          voice: clip.voice,
+          audioUrl: audioUrl,
+          time: time,
+          date: date,
+          service: clip.service as ServiceType,
+        };
+      }),
+    );
+
+    return historyItems;
+  } catch (error) {
+    console.error("Error fetching history items:", error);
+    return [];
+  }
+}

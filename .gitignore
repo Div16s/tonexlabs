@@ -1,0 +1,6 @@
+# Git-related files in subdirectories
+*/*/.git/
+*/*/.gitignore
+*/*/.gitmodules
+*/*/.gitattributes
+
