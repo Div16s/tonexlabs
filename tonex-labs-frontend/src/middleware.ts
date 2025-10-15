@@ -30,7 +30,7 @@ export async function middleware(req: NextRequest) {
     const path = req.nextUrl.pathname;
 
   // Use next-auth's lightweight edge-compatible token check
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   console.log("Middleware token", token);
 
   const isPublic = PUBLIC_PATHS.includes(path);
