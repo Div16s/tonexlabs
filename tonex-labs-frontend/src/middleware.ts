@@ -1,28 +1,55 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "~/server/auth";
+//import { auth } from "~/server/auth";
+import { getToken } from "next-auth/jwt";
 
-export async function middleware(request: NextRequest) {
-    const hasSession = await auth();
+const PUBLIC_PATHS = ["/app/sign-in", "/app/sign-up"];
 
-    const path = request.nextUrl.pathname;
+export async function middleware(req: NextRequest) {
+    // const hasSession = await auth();
 
-    const isAuthRoute = path === "/app/sign-in" || path === "/app/sign-up";
+    // const path = request.nextUrl.pathname;
 
-    const isProtectedRoute = path.startsWith("/app/") && !isAuthRoute;
+    // const isAuthRoute = path === "/app/sign-in" || path === "/app/sign-up";
 
-    if(hasSession && isAuthRoute) {
-        return NextResponse.redirect(new URL("/app/speech-synthesis/text-to-speech", request.url))
-    }
+    // const isProtectedRoute = path.startsWith("/app/") && !isAuthRoute;
 
-    if(!hasSession && isProtectedRoute){
-        const signInUrl = new URL("/app/sign-in", request.url);
-        signInUrl.searchParams.set("callbackUrl", request.url);
+    // if(hasSession && isAuthRoute) {
+    //     return NextResponse.redirect(new URL("/app/speech-synthesis/text-to-speech", request.url))
+    // }
 
-        return NextResponse.redirect(signInUrl);
-    }
+    // if(!hasSession && isProtectedRoute){
+    //     const signInUrl = new URL("/app/sign-in", request.url);
+    //     signInUrl.searchParams.set("callbackUrl", request.url);
 
-    return NextResponse.next();
+    //     return NextResponse.redirect(signInUrl);
+    // }
+
+    // return NextResponse.next();
+
+    const path = req.nextUrl.pathname;
+
+  // Use next-auth's lightweight edge-compatible token check
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+
+  const isPublic = PUBLIC_PATHS.includes(path);
+  const isProtected = path.startsWith("/app/") && !isPublic;
+
+  // Redirect authenticated users away from login/signup
+  if (token && isPublic) {
+    return NextResponse.redirect(
+      new URL("/app/speech-synthesis/text-to-speech", req.url)
+    );
+  }
+
+  // Redirect unauthenticated users away from protected pages
+  if (!token && isProtected) {
+    const signInUrl = new URL("/app/sign-in", req.url);
+    signInUrl.searchParams.set("callbackUrl", req.url);
+    return NextResponse.redirect(signInUrl);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
