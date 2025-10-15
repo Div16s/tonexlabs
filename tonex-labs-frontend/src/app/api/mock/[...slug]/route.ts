@@ -1,4 +1,3 @@
-import type { NextRequest } from "next/server";
 import { getPresignedUrl } from "~/lib/s3";
 
 const services = {
@@ -14,7 +13,7 @@ const services = {
 };
 
 export async function GET(
-  request: NextRequest,
+  request: Request,
   // { params }: { params: { slug: string[] } },
   context: { params: { slug: string[] } }
 ) {
@@ -51,7 +50,7 @@ export async function GET(
 
 
 export async function POST(
-  request: NextRequest,
+  request: Request,
   // { params }: { params: { slug: string[] } },
   context: { params: { slug: string[] } }
 ) {
