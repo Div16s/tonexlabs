@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { signUpSchema } from "~/schemas/auth";
 import type { SignUpFormValues } from "~/schemas/auth";
 import { db } from "~/server/db";
+import { ZodError } from "zod";
 
 export async function signUp(data: SignUpFormValues) {
     try {
@@ -28,10 +29,18 @@ export async function signUp(data: SignUpFormValues) {
             success: true,
             message: "Account created successfully"
         }
-    } catch (error: any) {
-        if(error?.name === "ZodError" && Array.isArray(error.errors) && error.errors.length > 0){
-            return { error: error.errors[0].message }
+    } catch (error: unknown) {
+        // if(error?.name === "ZodError" && Array.isArray(error.errors) && error.errors.length > 0){
+        //     return { error: error.errors[0].message }
+        // }
+        // return { error: "Something went wrong. Please try again." }
+
+        if (error instanceof ZodError) {
+            // Now TypeScript knows `error` is a ZodError inside this block
+            return { error: error?.errors[0]?.message };
         }
-        return { error: "Something went wrong. Please try again." }
+        
+        // Handle other types of errors
+        return { error: "Something went wrong. Please try again." };
     }
 }

@@ -148,7 +148,7 @@ export async function generationStatus(
   }
 
   if (audioClip.s3Key) {
-    revalidateBasedOnService(audioClip.service as ServiceType)
+    await revalidateBasedOnService(audioClip.service as ServiceType)
     return {
       success: true,
       audioUrl: await getPresignedUrl({ key: audioClip.s3Key }),
