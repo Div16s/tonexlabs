@@ -140,7 +140,7 @@ export default function Playbar() {
               <div className="flex items-center space-x-3">
                 <button
                   className="rounded-full p-2 hover:bg-gray-100"
-                  onClick={skipBackward}
+                  onClick={() => skipBackward}
                 >
                   <RiReplay10Fill className="h-5 w-5" />
                 </button>
@@ -156,7 +156,7 @@ export default function Playbar() {
                 </button>
                 <button
                   className="rounded-full p-2 hover:bg-gray-100"
-                  onClick={skipForward}
+                  onClick={() => skipForward}
                 >
                   <RiForward10Fill className="h-5 w-5" />
                 </button>
