@@ -2,6 +2,10 @@ import { db } from "~/server/db";
 import { inngest } from "~/inngest/client";
 import { env } from "~/env";
 
+interface EventData {
+  audioClipId: string;
+}
+
 export const aiGenerationFunction = inngest.createFunction(
   {
     id: "generate-audio-clip",
@@ -14,7 +18,8 @@ export const aiGenerationFunction = inngest.createFunction(
   },
   { event: "generate.request" },
   async ({ event, step }) => {
-    const {audioClipId} = event.data;
+    //const {audioClipId} = event.data;
+    const audioClipId = (event.data as EventData).audioClipId;
     const audioClip = await step.run("get-clip", async () => {
         return await db.generatedAudioClip.findUniqueOrThrow({
             where: {id: audioClipId},

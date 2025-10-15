@@ -1,4 +1,3 @@
-import { error } from "console";
 import type { NextRequest } from "next/server";
 import { getPresignedUrl } from "~/lib/s3";
 
@@ -18,7 +17,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { slug: string[] } },
 ) {
-  const slug = await params.slug;
+  const slug = params.slug;
   const [service, endpoint] = slug;
 
   // /api/mock/styletts2/
@@ -53,7 +52,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { slug: string[] } },
 ) {
-    const awaitedParams = await params;
+    const awaitedParams = params;
     const slug = awaitedParams.slug;
 
     const [service] = slug;
