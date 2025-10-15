@@ -18,7 +18,9 @@ export function SoundEffectsHistoryList({
    const groupedItems = historyItems.reduce(
     (groups: Record<string, typeof historyItems>, item) => {
       const date = item.date;
-      groups[date] ??= [];
+      if (!groups[date]) {
+        groups[date] = [];
+      }
       groups[date].push(item);
       return groups;
     },
