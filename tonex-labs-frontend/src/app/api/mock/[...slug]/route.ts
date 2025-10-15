@@ -15,9 +15,11 @@ const services = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string[] } },
+  // { params }: { params: { slug: string[] } },
+  context: { params: { slug: string[] } }
 ) {
-  const slug = params.slug;
+  // const slug = params.slug;
+  const { slug } = context.params;
   const [service, endpoint] = slug;
 
   // /api/mock/styletts2/
@@ -50,10 +52,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string[] } },
+  // { params }: { params: { slug: string[] } },
+  context: { params: { slug: string[] } }
 ) {
-    const awaitedParams = params;
-    const slug = awaitedParams.slug;
+    // const awaitedParams = params;
+    // const slug = awaitedParams.slug;
+    const { slug } = context.params;
 
     const [service] = slug;
 
