@@ -83,11 +83,23 @@ export const authConfig = {
      * @see https://next-auth.js.org/providers/github
      */
   ],
+  trustHost: true,
   pages: {
     signIn: "/app/sign-in",
   },
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 24 * 60 * 60 }, // 24 hours
   adapter: PrismaAdapter(db),
+  cookies: {
+    sessionToken: {
+      name: `__Secure-next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: true,
+      },
+    },
+  },
   callbacks: {
     session: ({ session, token }) => ({
       ...session,
