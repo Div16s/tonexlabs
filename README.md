@@ -102,28 +102,56 @@ This is a **one-off job** performed to create the custom, fine-tuned model files
 The "Deployment" server is then configured to download and use this new `.pth` file from S3.
 
 ```mermaid
-flowchart LR
-    subgraph L["<b>Local</b>"]
-      B["Build training image<br/><i>code + dataset + base weights</i>"]
+%%{init: {'flowchart': {'wrappingWidth': 440}}}%%
+flowchart TB
+    BUILD["<b>1 · Build the Docker image</b><br/><i>code, training data and the starting model,<br/>packed into a single image</i>"]
+
+    subgraph ECRG["<b>ECR</b> — AWS container registry"]
+      REPO["<b>2 · Push the image</b><br/><i>stored privately, ready for any instance to pull</i>"]
     end
-    subgraph E["<b>ECR</b>"]
-      R["styletts2-ft"]
+
+    subgraph EC2G["<b>EC2</b> — GPU instance, started for this job only"]
+      START["<b>3 · Start a GPU instance</b><br/><i>graphics drivers already installed</i>"]
+      PULL["<b>4 · Pull the image, run the container</b><br/><i>training happens inside the container</i>"]
+      UPL["<b>5 · Upload the trained model to S3</b><br/><i>saved periodically, not just at the end</i>"]
+      TERM["<b>6 · Terminate the instance</b><br/><i>billing stops · its disk is thrown away</i>"]
+      START --> PULL --> UPL --> TERM
     end
-    subgraph I["<b>EC2 g5.xlarge</b> · ephemeral"]
+
+    subgraph S3G["<b>S3</b> — AWS object storage"]
+      MODEL["<b>The trained model file</b><br/><i>the only thing that outlives the instance</i>"]
+    end
+
+    DOWN["<b>7 · Download the model file</b><br/><i>pick the best saved version, not always the last</i>"]
+    INFER["<b>8 · Run inference with the new model</b><br/><i>served by the API container</i>"]
+
+    subgraph IMG["<b>Inside the image</b>"]
       direction TB
-      P["① pull image"] --> T["② docker run --gpus all"] --> S["③ checkpoint every 5 epochs"] --> U["④ upload to S3"] --> K["⑤ <b>TERMINATE</b>"]
+      I1["Model code"]
+      I2["Training data — voice recordings"]
+      I3["Starting model to fine-tune from"]
+      I1 ~~~ I2 ~~~ I3
     end
-    subgraph D["<b>S3</b>"]
-      M["epoch_2nd_00074.pth<br/>2.24 GB"]
-    end
-    subgraph C["<b>Consume</b>"]
-      direction TB
-      G["download checkpoint"] --> H["build dockerfile.api<br/><i>weights baked in</i>"] --> J["serve on the inference instance"]
-    end
-    B -->|push| R
-    R -.->|pull| P
-    U --> M
-    M -->|pull| G
+
+    NOTE["<i>Data and model are baked into the image,<br/>not mounted at runtime</i>"]
+    TRADE["<b>Upside:</b> the instance needs no setup — pull and run<br/><b>Downside:</b> a large image, rebuilt whenever the data changes"]
+
+    BUILD -->|"docker push"| REPO
+    BUILD -.-> IMG
+    NOTE -.- IMG
+    IMG -.- TRADE
+    REPO --> START
+    REPO -.->|"docker pull"| PULL
+    UPL --> MODEL
+    MODEL --> DOWN --> INFER
+
+    classDef aws fill:#fff8ec,stroke:#e8a33d,stroke-width:2px,color:#3d3d3d
+    classDef plain fill:#ffffff,stroke:#3d3d3d,stroke-width:2px,color:#3d3d3d
+    classDef note fill:none,stroke:#9aa0a6,stroke-width:1px,stroke-dasharray:5 4,color:#5f6368
+    class REPO,START,PULL,UPL,TERM,MODEL aws
+    class BUILD,DOWN,INFER,I1,I2,I3 plain
+    class NOTE,TRADE note
+    style IMG fill:#f4f9ff,stroke:#4a90d9,stroke-width:2px
 ```
 
 
