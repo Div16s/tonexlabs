@@ -101,7 +101,31 @@ This is a **one-off job** performed to create the custom, fine-tuned model files
 
 The "Deployment" server is then configured to download and use this new `.pth` file from S3.
 
-![Fine-Tuning Job Flow](httpsS://i.imgur.com/example.png) ---
+```mermaid
+flowchart LR
+    subgraph L["<b>Local</b>"]
+      B["Build training image<br/><i>code + dataset + base weights</i>"]
+    end
+    subgraph E["<b>ECR</b>"]
+      R["styletts2-ft"]
+    end
+    subgraph I["<b>EC2 g5.xlarge</b> · ephemeral"]
+      direction TB
+      P["① pull image"] --> T["② docker run --gpus all"] --> S["③ checkpoint every 5 epochs"] --> U["④ upload to S3"] --> K["⑤ <b>TERMINATE</b>"]
+    end
+    subgraph D["<b>S3</b>"]
+      M["epoch_2nd_00074.pth<br/>2.24 GB"]
+    end
+    subgraph C["<b>Consume</b>"]
+      direction TB
+      G["download checkpoint"] --> H["build dockerfile.api<br/><i>weights baked in</i>"] --> J["serve on the inference instance"]
+    end
+    B -->|push| R
+    R -.->|pull| P
+    U --> M
+    M -->|pull| G
+```
+
 
 ## 🔒 AWS Security Model
 
