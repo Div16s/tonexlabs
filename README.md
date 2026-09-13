@@ -56,7 +56,20 @@ flowchart LR
     C1 ---|"Text-to-speech · POST &lt;EC2 IP&gt;:8000/generate"| APP
     C2 ---|"Voice conversion · POST &lt;EC2 IP&gt;:8001/convert"| APP
     C3 ---|"Text-to-SFX · POST &lt;EC2 IP&gt;:8002/generate"| APP
+
+    classDef container fill:#fff8ec,stroke:#e8a33d,stroke-width:2px,color:#3d3d3d
+    classDef app fill:#ffffff,stroke:#3d3d3d,stroke-width:2px,color:#3d3d3d
+    class C1,C2,C3 container
+    class APP app
+
+    style EC2 fill:#fffdf6,stroke:#e8a33d,stroke-width:2px,color:#3d3d3d
+    style DC fill:#f4f9ff,stroke:#4a90d9,stroke-width:2px,color:#3d3d3d
+
+    linkStyle 0 stroke:#e8a33d,stroke-width:2px
+    linkStyle 1 stroke:#4a90d9,stroke-width:2px
+    linkStyle 2 stroke:#59a14f,stroke-width:2px
 ```
+
 
 
 ### 2. Application Flows
