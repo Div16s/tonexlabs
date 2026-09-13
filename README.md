@@ -69,7 +69,39 @@ flowchart LR
 5.  **HTTP Response:** The API returns a JSON response to the frontend containing the S3 URL of the new file.
 6.  **Frontend:** The app's audio player plays the audio directly from the S3 URL.
 
-![TTS Flow](httpsS://i.imgur.com/example.png) #### Voice Conversion (VC) Flow
+```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 400}}}%%
+flowchart TB
+    subgraph FEL["<b>Frontend</b> · Next.js"]
+      F1["<b>1 · Enter text, pick voice, generate</b>"]
+      F3["<b>3 · Poll for status</b><br/><i>UI stays responsive meanwhile</i>"]
+      F7["<b>7 · Player streams from the link</b>"]
+      F1 --> F3
+    end
+
+    subgraph BEL["<b>Backend</b> · asynchronous"]
+      B2["<b>2 · Server action → Inngest queue</b><br/><i>returns at once · job runs in background</i>"]
+      B4["<b>4 · POST :8000/generate</b><br/><i>styletts2-api · FastAPI on EC2</i>"]
+      B5["<b>5 · Model writes a .wav</b>"]
+      B6["<b>6 · Upload → styletts2-outputs/</b><br/><i>returns { audio_url, s3_key }</i>"]
+      B2 --> B4 --> B5 --> B6
+    end
+
+    S3B{"<b>S3</b><br/><i>bucket tonexlabs · private</i>"}
+
+    F1 -->|"HTTP · returns immediately"| B2
+    B6 -->|"upload"| S3B
+    F3 -.->|"ready?"| B6
+    B6 -.->|"presigned URL · 1 hr"| F7
+    S3B -.->|"plays from S3"| F7
+
+    classDef aws fill:#fff8ec,stroke:#e8a33d,stroke-width:2px,color:#3d3d3d
+    classDef plain fill:#ffffff,stroke:#3d3d3d,stroke-width:2px,color:#3d3d3d
+    class B2,B4,B5,B6,S3B aws
+    class F1,F3,F7 plain
+```
+
+#### Voice Conversion (VC) Flow
 1.  **Frontend:** User uploads an audio file (e.g., `my_voice.wav`), selects a target voice, and hits "Generate." The frontend uploads this file directly to an `seedvc-audio-uploads` S3 bucket.
 2.  **HTTP Request:** The Next.js app sends an HTTP request to `http://<EC2_IP>:8001/convert`, passing the S3 URL of the newly uploaded file.
 3.  **Backend:** The `seed-vc-api` downloads the user's audio from S3.
@@ -78,10 +110,77 @@ flowchart LR
 6.  **HTTP Response:** The API returns the S3 URL of the converted file.
 7.  **Frontend:** The app's audio player plays the new audio from the S3 link.
 
-![VC Flow](httpsS://i.imgur.com/example.png) #### Text-to-SFX Flow
+```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 400}}}%%
+flowchart TB
+    subgraph FEL["<b>Frontend</b> · Next.js"]
+      F1["<b>1 · Upload audio, pick target voice</b>"]
+      F2["<b>2 · Press generate</b><br/><i>file goes straight to S3, not through the server</i>"]
+      F4["<b>4 · Poll for status</b><br/><i>UI stays responsive meanwhile</i>"]
+      F9["<b>9 · Player streams from the link</b>"]
+      F1 --> F2 --> F4
+    end
+
+    subgraph BEL["<b>Backend</b> · asynchronous"]
+      B3["<b>3 · Server action → Inngest queue</b><br/><i>returns at once · job runs in background</i>"]
+      B5["<b>5 · POST :8001/convert</b><br/><i>seed-vc-api · FastAPI on EC2</i>"]
+      B6["<b>6 · Download the source audio</b><br/><i>by key, never uploaded to the API</i>"]
+      B7["<b>7 · seed-vc converts to the target voice</b>"]
+      B8["<b>8 · Upload → seedvc-outputs/</b><br/><i>returns { audio_url, s3_key }</i>"]
+      B3 --> B5 --> B6 --> B7 --> B8
+    end
+
+    S3B{"<b>S3</b><br/><i>bucket tonexlabs · private</i>"}
+
+    F2 -->|"presigned PUT → seed-vc-audio-uploads/"| S3B
+    F2 -->|"HTTP · { source_audio_key } · returns immediately"| B3
+    B6 -.->|"download by key"| S3B
+    B8 -->|"upload"| S3B
+    F4 -.->|"ready?"| B8
+    B8 -.->|"presigned URL · 1 hr"| F9
+    S3B -.->|"plays from S3"| F9
+
+    classDef aws fill:#fff8ec,stroke:#e8a33d,stroke-width:2px,color:#3d3d3d
+    classDef plain fill:#ffffff,stroke:#3d3d3d,stroke-width:2px,color:#3d3d3d
+    class B3,B5,B6,B7,B8,S3B aws
+    class F1,F2,F4,F9 plain
+```
+
+#### Text-to-SFX Flow
 This flow is identical to the TTS flow, but it uses the `make-an-audio` model on port `8002`.
 
-![SFX Flow](httpsS://i.imgur.com/example.png) ---
+```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 400}}}%%
+flowchart TB
+    subgraph FEL["<b>Frontend</b> · Next.js"]
+      F1["<b>1 · Enter a prompt, generate</b>"]
+      F3["<b>3 · Poll for status</b><br/><i>UI stays responsive meanwhile</i>"]
+      F7["<b>7 · Player streams from the link</b>"]
+      F1 --> F3
+    end
+
+    subgraph BEL["<b>Backend</b> · asynchronous"]
+      B2["<b>2 · Server action → Inngest queue</b><br/><i>returns at once · job runs in background</i>"]
+      B4["<b>4 · POST :8002/generate</b><br/><i>make-an-audio-api · FastAPI on EC2</i>"]
+      B5["<b>5 · Model writes a .wav</b>"]
+      B6["<b>6 · Upload → make-an-audio-outputs/</b><br/><i>returns { audio_url, s3_key }</i>"]
+      B2 --> B4 --> B5 --> B6
+    end
+
+    S3B{"<b>S3</b><br/><i>bucket tonexlabs · private</i>"}
+
+    F1 -->|"HTTP · { prompt } · returns immediately"| B2
+    B6 -->|"upload"| S3B
+    F3 -.->|"ready?"| B6
+    B6 -.->|"presigned URL · 1 hr"| F7
+    S3B -.->|"plays from S3"| F7
+
+    classDef aws fill:#fff8ec,stroke:#e8a33d,stroke-width:2px,color:#3d3d3d
+    classDef plain fill:#ffffff,stroke:#3d3d3d,stroke-width:2px,color:#3d3d3d
+    class B2,B4,B5,B6,S3B aws
+    class F1,F3,F7 plain
+```
+
 
 ## 🧠 Model Fine-Tuning Process
 
