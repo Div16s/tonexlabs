@@ -40,7 +40,26 @@ The core backend runs on a `G5.xlarge` EC2 instance, managed by `docker-compose`
 
 The EC2 instance's Security Group is configured to allow public TCP traffic on ports `8000`, `8001`, and `8002` so the Next.js frontend can communicate with each service.
 
-![API Deployment Architecture](httpsS://i.imgur.com/example.png) ### 2. Application Flows
+```mermaid
+flowchart LR
+    subgraph EC2["<b>AWS EC2</b> · g5.xlarge · one A10G 24 GB"]
+      subgraph DC["<b>docker compose</b> · restart: unless-stopped"]
+        direction TB
+        C1["&lt;container&gt;<br/><b>styletts2-api</b>"]
+        C2["&lt;container&gt;<br/><b>seedvc-api</b>"]
+        C3["&lt;container&gt;<br/><b>make-an-audio-api</b>"]
+      end
+    end
+
+    APP["<b>Next.js app</b><br/>Vercel"]
+
+    C1 ---|"Text-to-speech · POST &lt;EC2 IP&gt;:8000/generate"| APP
+    C2 ---|"Voice conversion · POST &lt;EC2 IP&gt;:8001/convert"| APP
+    C3 ---|"Text-to-SFX · POST &lt;EC2 IP&gt;:8002/generate"| APP
+```
+
+
+### 2. Application Flows
 
 #### Text-to-Speech (TTS) Flow
 1.  **Frontend:** User enters text, selects a voice, and hits "Generate."
