@@ -355,3 +355,26 @@ uvicorn main_tts:app --host 0.0.0.0 --port 8000
     * Create the `.env` file on the server.
     * Run `docker compose pull` to get your images from ECR.
     * Run `docker compose up -d` to start the services in the background.
+
+## Credits
+
+The model architectures and pretrained weights are published research. This repository is about what it takes to **fine-tune, containerise and operate** them — the training pipeline, the inference services, the AWS deployment, and the app in front of them.
+
+### Models
+
+| Model | Authors | Used for | License |
+|:---|:---|:---|:---|
+| [StyleTTS2](https://github.com/yl4579/StyleTTS2) | Li et al. · NeurIPS 2023 | Text-to-speech, fine-tuned on a custom voice | MIT |
+| [Seed-VC](https://github.com/Plachtaa/seed-vc) | Plachtaa | Voice conversion | **GPL-3.0** |
+| [Make-An-Audio](https://github.com/Text-to-Audio/Make-An-Audio) | Huang et al. · ICML 2023 | Text-to-sound-effects | MIT |
+
+### Tooling
+
+* [WhisperX](https://github.com/m-bain/whisperX) — transcription and alignment for the training dataset
+* [espeak-ng](https://github.com/espeak-ng/espeak-ng) — grapheme-to-phoneme conversion
+* [FastAPI](https://fastapi.tiangolo.com) · [PyTorch](https://pytorch.org) — inference services
+* [Next.js](https://nextjs.org) · [Auth.js](https://authjs.dev) · [Prisma](https://prisma.io) · [Inngest](https://inngest.com) — web app and job queue
+
+### What's mine
+
+The fine-tuning configuration and its VRAM trade-offs, the dataset pipeline, the three FastAPI services, the Docker images and compose deployment, the AWS infrastructure and IAM setup, and the Next.js application. The research is theirs; the system around it is mine.
